@@ -1,0 +1,11 @@
+{
+  "name": "gtm-cloud-image",
+  "version": "1.0.1",
+  "main": "server_bin.js",
+  "scripts": {
+    "start": "node server_bin.js"
+  },
+  "dependencies": {
+    "flags": "0.1.3"
+  }
+}
