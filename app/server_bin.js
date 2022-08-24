@@ -80,7 +80,7 @@ function A(a) {
 require("process");
 require("process");
 const C = require("vm");
-global.sst_image_version = "1.0.0";
+global.sst_image_version = "1.1.0";
 global.require = require;
 z("https://www.googletagmanager.com/static/serverjs/server_bootstrap.js", Object.assign({}, {
     method: "GET"
