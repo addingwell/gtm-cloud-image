@@ -6,6 +6,7 @@
     "start": "node server_bin.js"
   },
   "dependencies": {
-    "flags": "0.1.3"
+    "flags": "0.1.3",
+    "@google-cloud/bigquery": "~4.7.0"
   }
 }
