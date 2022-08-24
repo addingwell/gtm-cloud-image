@@ -4,90 +4,91 @@
  SPDX-License-Identifier: Apache-2.0
 */
 'use strict';
-const l = require("http"),
-    p = require("https"),
-    q = require("url");
-var x = class extends Error {
+const m = require("http"),
+    q = require("https"),
+    r = require("url");
+var y = class extends Error {
     constructor(a) {
         super(a);
         this.name = "HttpTimeoutError";
-        Error.captureStackTrace(this, x)
+        Error.captureStackTrace(this, y)
     }
 };
 
-function y(a, c, e) {
-    const h = !!c.followRedirects,
-        r = Number(c.maxRedirects),
-        t = isNaN(r) ? 3 : r;
-    if (h && 0 > t) return Promise.reject(Error("Too many redirects."));
-    let f, u;
-    return (new Promise((v, k) => {
-        var g = Number(c.timeout);
-        0 < g && (u = setTimeout(() => {
-            f.abort();
-            k(new x("Request timed out."))
-        }, g));
+function z(a, c, f) {
+    const k = !!c.followRedirects,
+        t = Number(c.maxRedirects),
+        u = isNaN(t) ? 3 : t;
+    if (k && 0 > u) return Promise.reject(Error("Too many redirects."));
+    let g, v;
+    return (new Promise((w, l) => {
+        var h = Number(c.timeout);
+        let e = c.timeoutCallbacks;
+        0 < h && (e = e || [], v = setTimeout(() => {
+            for (const b of e) b()
+        }, h));
+        e && e.push(() => {
+            g.abort();
+            l(new y("Request timed out."))
+        });
         const d = Object.assign({}, c);
         c.headers && (d.headers = Object.assign({}, c.headers));
         delete d.timeout;
-        z(d);
-        e && (d.headers || (d.headers = {}), d.headers["content-length"] = Buffer.byteLength(e));
-        g = Object.assign(q.parse(a), d);
-        if (A(a)) var w =
-            p;
-        else if (a.toLowerCase().startsWith("http://")) w = l;
+        A(d);
+        f && (d.headers || (d.headers = {}), d.headers["content-length"] =
+            Buffer.byteLength(f));
+        h = Object.assign(r.parse(a), d);
+        if (B(a)) var x = q;
+        else if (a.toLowerCase().startsWith("http://")) x = m;
         else throw Error(`URL ${a} uses unsupported protocol; must be HTTP or HTTPS.`);
-        f = w.request(g, b => {
-            if (h && 300 <= b.statusCode && 400 > b.statusCode && b.headers.location) {
+        g = x.request(h, b => {
+            if (k && 300 <= b.statusCode && 400 > b.statusCode && b.headers.location) {
                 b.resume();
-                const m = b.headers.location;
-                A(a) && !A(m) ? k(Error("Unable to follow HTTPS -> HTTP redirect.")) : v(y(b.headers.location, Object.assign(d, {
-                    followRedirects: h,
-                    maxRedirects: t - 1
-                }), e))
+                const n = b.headers.location;
+                B(a) && !B(n) ? l(Error("Unable to follow HTTPS -> HTTP redirect.")) : w(z(b.headers.location, Object.assign(d, {
+                    timeoutCallbacks: e,
+                    followRedirects: k,
+                    maxRedirects: u - 1
+                }), f))
             } else {
-                var n = [];
-                b.on("data", m => {
-                    n.push(m)
-                });
+                var p = [];
+                b.on("data",
+                    n => {
+                        p.push(n)
+                    });
                 b.on("end", () => {
-                    v({
+                    w({
                         statusCode: b.statusCode,
                         headers: b.headers,
-                        body: 0 ===
-                            n.length ? void 0 : Buffer.concat(n).toString()
+                        body: 0 === p.length ? void 0 : Buffer.concat(p).toString()
                     })
                 })
             }
         });
-        f.on("error", k);
-        f.end(e)
-    })).finally(() => clearTimeout(u))
+        g.on("error", l);
+        g.end(f)
+    })).finally(() => void clearTimeout(v))
 }
 
-function A(a) {
+function B(a) {
     return a.toLowerCase().startsWith("https://")
 }
 
-function z(a) {
+function A(a) {
     global.server_js_dev_only && (a.headers || (a.headers = {}), a.headers["X-Google-GFE-Frontline-Info"] = "ssl")
 };
 require("process");
 require("process");
-const B = require("vm");
+const C = require("vm");
 global.require = require;
-y("https://www.googletagmanager.com/static/serverjs/server_bootstrap.js", Object.assign({}, {
+z("https://www.googletagmanager.com/static/serverjs/server_bootstrap.js", Object.assign({}, {
     method: "GET"
 })).then(function(a) {
-    if (!(400 > a.statusCode)) {
-        var c = `Received HTTP status code ${a.statusCode}.`;
-        void 0 != a.body && (c += `\n\n${a.body}`);
-        throw Error(c);
-    }
+    if (400 <= a.statusCode) throw Error(`Received HTTP status code ${a.statusCode}.`);
     try {
-        B.runInThisContext(a.body || "")
-    } catch (e) {
-        throw console.error("Unable to process server bootstrap JS at https://www.googletagmanager.com/static/serverjs/server_bootstrap.js\n", e), e;
+        C.runInThisContext(a.body || "")
+    } catch (c) {
+        throw console.error("Unable to process server bootstrap JS at https://www.googletagmanager.com/static/serverjs/server_bootstrap.js\n", c), c;
     }
 }).catch(a => {
     console.error("Fetching server bootstrap JS from https://www.googletagmanager.com/static/serverjs/server_bootstrap.js failed.");
