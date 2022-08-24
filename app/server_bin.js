@@ -4,51 +4,85 @@
  SPDX-License-Identifier: Apache-2.0
 */
 'use strict';
-const h = require("http"),
-    k = require("https");
-require("url");
-
-function l(b, c, e, g) {
-    return a => {
-        const d = a.statusCode;
-        if (300 <= d && 400 > d && a.headers.location) a.resume(), 3 === g ? c && c(Error("Too many redirects.")) : e(a.headers.location, g + 1);
-        else if (2 > b.length) a.resume(), 200 > d || 299 < d ? c && c(Error(`Received HTTP status code ${d}.`)) : b(a);
-        else {
-            var f = [];
-            a.on("data", m => void f.push(m));
-            a.on("end", () => {
-                200 > d || 299 < d ? c && c(Error(`Received HTTP status code ${d}.\n\n
-                ${f.join("")}`)) : b(a, f.join(""))
-            })
-        }
+const l = require("http"),
+    m = require("https"),
+    v = require("url");
+var w = class extends Error {
+    constructor(a) {
+        super(a);
+        this.name = "HttpTimeoutError";
+        Error.captureStackTrace(this, w)
     }
+};
+
+function x(a, b, e) {
+    const h = !!b.followRedirects,
+        n = Number(b.maxRedirects),
+        p = isNaN(n) ? 3 : n;
+    if (h && 0 > p) return Promise.reject(Error("Too many redirects."));
+    let f, q;
+    return (new Promise((r, t) => {
+        var g = Number(b.timeout);
+        0 < g && (q = setTimeout(() => {
+            f.abort();
+            t(new w("Request timed out."))
+        }, g));
+        const d = Object.assign({}, b);
+        b.headers && (d.headers = Object.assign({}, b.headers));
+        delete d.timeout;
+        y(d);
+        e && (d.headers || (d.headers = {}), d.headers["content-length"] = Buffer.byteLength(e));
+        g = Object.assign(v.parse(a), d);
+        if (a.toLowerCase().startsWith("https://")) var u =
+            m;
+        else if (a.toLowerCase().startsWith("http://")) u = l;
+        else throw Error(`URL ${a} uses unsupported protocol; must be HTTP or HTTPS.`);
+        f = u.request(g, c => {
+            if (h && 300 <= c.statusCode && 400 > c.statusCode && c.headers.location) c.resume(), r(x(c.headers.location, Object.assign(d, {
+                followRedirects: h,
+                maxRedirects: p - 1
+            }), e));
+            else {
+                var k = [];
+                c.on("data", z => {
+                    k.push(z)
+                });
+                c.on("end", () => {
+                    r({
+                        statusCode: c.statusCode,
+                        headers: c.headers,
+                        body: 0 === k.length ? void 0 : Buffer.concat(k).toString()
+                    })
+                })
+            }
+        });
+        f.on("error", t);
+        f.end(e)
+    })).finally(() =>
+        clearTimeout(q))
 }
 
-function n(b) {
-    global.server_js_dev_only && (b.headers || (b.headers = {}), b.headers["X-Google-GFE-Frontline-Info"] = "ssl")
+function y(a) {
+    global.server_js_dev_only && (a.headers || (a.headers = {}), a.headers["X-Google-GFE-Frontline-Info"] = "ssl")
 };
 require("process");
-const p = require("vm");
+require("process");
+const A = require("vm");
 global.require = require;
-(function(b, c) {
-    function e(a, d) {
-        if (a.toLowerCase().startsWith("https://")) var f = k;
-        else if (a.toLowerCase().startsWith("http://")) f = h;
-        else throw Error(`URL ${a} uses unsupported protocol; must be HTTP or HTTPS.`);
-        a = f.get(a, g, l(b, c, e, d));
-        if (c) a.on("error", c)
+x("https://www.googletagmanager.com/static/serverjs/server_bootstrap.js", Object.assign({}, {
+    method: "GET"
+})).then(function(a) {
+    if (!(400 > a.statusCode)) {
+        var b = `Received HTTP status code ${a.statusCode}.`;
+        void 0 != a.body && (b += `\n\n${a.body}`);
+        throw Error(b);
     }
-    const g = {};
-    n(g);
-    e("https://www.googletagmanager.com/static/serverjs/server_bootstrap.js", 0)
-})(function(b, c) {
     try {
-        p.runInThisContext(c)
+        A.runInThisContext(a.body || "")
     } catch (e) {
-        throw console.error("Unable to process server bootstrap JS at https://www.googletagmanager.com/static/serverjs/server_bootstrap.js\n", e),
-            e;
+        throw console.error("Unable to process server bootstrap JS at https://www.googletagmanager.com/static/serverjs/server_bootstrap.js\n", e), e;
     }
-}, b => {
+}).catch(a => {
     console.error("Fetching server bootstrap JS from https://www.googletagmanager.com/static/serverjs/server_bootstrap.js failed.");
-    throw b;
+    throw a;
 });
